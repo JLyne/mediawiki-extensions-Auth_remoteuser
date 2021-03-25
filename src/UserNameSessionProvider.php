@@ -131,6 +131,22 @@ class UserNameSessionProvider extends CookieSessionProvider {
 	protected bool $removeAuthPagesAndLinks;
 
 	/**
+	 * The remote groups given as an array
+	 *
+	 * @var array
+	 * @since 2.0.1
+	 */
+	protected array $groups;
+
+	/**
+	 * Indicates if existing user groups that are not present in the groups array should be removed
+	 *
+	 * @var bool
+	 * @since 2.0.1
+	 */
+	protected bool $overwriteLocalGroups;
+
+	/**
 	 * A token unique to the remote source session.
 	 *
 	 * This must persist requests and if it changes, it indicates a change in the
@@ -190,7 +206,9 @@ class UserNameSessionProvider extends CookieSessionProvider {
 			'userPrefsForced' => null,
 			'userUrls' => null,
 			'switchUser' => false,
-			'removeAuthPagesAndLinks' => true
+			'removeAuthPagesAndLinks' => true,
+			'groups' => [],
+			'overwriteLocalGroups' => false,
 		];
 
 		# Sanitize configuration and apply to own members.
@@ -199,6 +217,7 @@ class UserNameSessionProvider extends CookieSessionProvider {
 			if ( array_key_exists( $key, $params ) ) {
 				switch ( $key ) {
 					case 'remoteUserNames':
+					case 'groups':
 						$final = [];
 						$names = $params[ $key ];
 						if ( !is_array( $names ) ) {
@@ -265,6 +284,15 @@ class UserNameSessionProvider extends CookieSessionProvider {
 		];
 		$params[ 'cookieOptions' ] += [ 'prefix' => $cookiePrefix ];
 		$params[ 'cookieOptions' ][ 'prefix' ] .= $providerprefix;
+
+		$this->hookContainer->register(
+			'UserEffectiveGroups',
+			function ( $user, &$groups ) {
+				$groups = $this->determineUserGroups( $groups );
+
+				return true;
+			}
+		);
 
 		# Let our parent sanitize the rest of the configuration.
 		parent::__construct(
@@ -886,4 +914,28 @@ class UserNameSessionProvider extends CookieSessionProvider {
 		return $anonCanAutoCreate || $anonCanCreate;
 	}
 
+	private function determineUserGroups( $existingGroups ) {
+		$groups = ['*'];
+
+		foreach( $this->groups as $group ) {
+			if( $group instanceof Closure ) {
+				$result = array_merge(call_user_func($group));
+
+				if( is_array($result) ) {
+					$groups = array_merge($groups, $result);
+				} else {
+					$groups[] = $result;
+				}
+			} else {
+				$groups[] = $group;
+			}
+		}
+
+		// Remove existing groups that user is no longer in (if so configured.)
+		if( $this->overwriteLocalGroups ) {
+			return $groups;
+		}
+
+		return array_unique( array_merge( $groups, $existingGroups ) );
+	}
 }
