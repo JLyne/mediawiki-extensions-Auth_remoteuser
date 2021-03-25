@@ -84,7 +84,9 @@ class AuthRemoteuserSessionProvider extends UserNameSessionProvider {
 			'UserUrls' => 'userUrls',
 			'AllowUserSwitch' => 'switchUser',
 			'RemoveAuthPagesAndLinks' => 'removeAuthPagesAndLinks',
-			'Priority' => 'priority'
+			'Priority' => 'priority',
+			'Groups' => 'groups',
+			'OverwriteLocalGroups' => 'overwriteLocalGroups'
 		];
 
 		foreach ( $mapping as $confkey => $key ) {

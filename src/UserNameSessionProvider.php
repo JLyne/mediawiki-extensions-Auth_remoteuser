@@ -126,6 +126,22 @@ class UserNameSessionProvider extends CookieSessionProvider {
 	protected $removeAuthPagesAndLinks;
 
 	/**
+	 * The remote groups given as an array
+	 *
+	 * @var array
+	 * @since 2.0.1
+	 */
+	protected $groups;
+
+	/**
+	 * Indicates if existing user groups that are not present in the groups array should be removed
+	 *
+	 * @var bool
+	 * @since 2.0.1
+	 */
+	protected $overwriteLocalGroups;
+
+	/**
 	 * A token unique to the remote source session.
 	 *
 	 * This must persist requests and if it changes, it indicates a change in the
@@ -170,7 +186,9 @@ class UserNameSessionProvider extends CookieSessionProvider {
 			'userPrefsForced' => null,
 			'userUrls' => null,
 			'switchUser' => false,
-			'removeAuthPagesAndLinks' => true
+			'removeAuthPagesAndLinks' => true,
+			'groups' => [],
+			'overwriteLocalGroups' => false,
 		];
 
 		# Sanitize configuration and apply to own members.
@@ -619,6 +637,8 @@ class UserNameSessionProvider extends CookieSessionProvider {
 			);
 		}
 
+		$this->setUserGroups($info->getUserInfo()->getUser());
+
 		# Set user preferences on each request.
 		#
 		# Forcing user preferences is useful if they are provided by an external
@@ -845,4 +865,33 @@ class UserNameSessionProvider extends CookieSessionProvider {
 		}
 	}
 
+	private function setUserGroups($user) {
+		$dirty = false;
+
+		// Remove existing groups that user is no longer in (if so configured.)
+		if ($this->overwriteLocalGroups) {
+			$curGroups = $user->getGroups();
+			foreach($curGroups as $group) {
+				if(FALSE === in_array($group, $this->groups)) {
+					// No longer in this group, so remove it.
+					$dirty = true;
+					$user->removeGroup($group);
+				}
+			}
+		}
+
+		// Add in any new groups that aren't already present.
+		$curGroups = $user->getGroups();
+		foreach($this->groups as $group) {
+			if(FALSE === in_array($group, $curGroups)) {
+				$dirty = true;
+				$user->addGroup($group);
+			}
+		}
+
+		# Only update database if something has changed.
+		if ($dirty) {
+			$user->saveSettings();
+		}
+	}
 }
