@@ -197,6 +197,7 @@ class UserNameSessionProvider extends CookieSessionProvider {
 			if ( array_key_exists( $key, $params ) ) {
 				switch ( $key ) {
 					case 'remoteUserNames':
+					case 'groups':
 						$final = [];
 						$names = $params[ $key ];
 						if ( !is_array( $names ) ) {
@@ -868,11 +869,27 @@ class UserNameSessionProvider extends CookieSessionProvider {
 	private function setUserGroups($user) {
 		$dirty = false;
 
+		$groups = [];
+
+		foreach($this->groups as $group) {
+			if($group instanceof Closure) {
+				$result = array_merge(call_user_func($group));
+
+				if(is_array($result)) {
+					$groups += $result;
+				} else {
+					$groups[] = $result;
+				}
+			} else {
+				$groups[] = $group;
+			}
+		}
+
 		// Remove existing groups that user is no longer in (if so configured.)
 		if ($this->overwriteLocalGroups) {
 			$curGroups = $user->getGroups();
 			foreach($curGroups as $group) {
-				if(FALSE === in_array($group, $this->groups)) {
+				if(FALSE === in_array($group, $groups)) {
 					// No longer in this group, so remove it.
 					$dirty = true;
 					$user->removeGroup($group);
@@ -882,7 +899,7 @@ class UserNameSessionProvider extends CookieSessionProvider {
 
 		// Add in any new groups that aren't already present.
 		$curGroups = $user->getGroups();
-		foreach($this->groups as $group) {
+		foreach($groups as $group) {
 			if(FALSE === in_array($group, $curGroups)) {
 				$dirty = true;
 				$user->addGroup($group);
