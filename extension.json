@@ -34,6 +34,12 @@
 		},
 		"AuthRemoteuserPriority": {
 			"value": 50
+		},
+		"AuthRemoteuserGroups": {
+			"value": null
+		},
+		"AuthRemoteuserOverwriteLocalGroups": {
+			"value": false
 		}
 	},
 	"type": "other",
