@@ -109,6 +109,16 @@ class UserNameSessionProvider extends CookieSessionProvider {
 	protected $userUrls;
 
 	/**
+	 * Labels in links which differ from the default ones. The following keys are
+	 * supported in this associative array:
+	 * * 'logout' - Use this label for logout link.
+	 *
+	 * @var array
+	 * @since 2.0.0
+	 */
+	protected $userLabels;
+
+	/**
 	 * Indicates if the automatically logged-in user can switch to another local
 	 * MediaWiki account while still beeing identified by the remote user name.
 	 *
@@ -185,6 +195,7 @@ class UserNameSessionProvider extends CookieSessionProvider {
 			'userPrefs' => null,
 			'userPrefsForced' => null,
 			'userUrls' => null,
+			'userLabels' => null,
 			'switchUser' => false,
 			'removeAuthPagesAndLinks' => true,
 			'groups' => [],
@@ -215,6 +226,7 @@ class UserNameSessionProvider extends CookieSessionProvider {
 					case 'userPrefs':
 					case 'userPrefsForced':
 					case 'userUrls':
+					case 'userLabels':
 						if ( is_array( $params[ $key ] ) ) {
 							$value = $params[ $key ];
 						}
@@ -562,6 +574,8 @@ class UserNameSessionProvider extends CookieSessionProvider {
 		# therefore we use the `UserLogoutComplete` hook for these type of urls.
 		if ( $this->userUrls && isset( $this->userUrls[ 'logout' ] ) ) {
 			$url = $this->userUrls[ 'logout' ];
+			$label = $this->userLabels[ 'logout' ] ?? null;
+
 			if ( $this->canChangeUser() ) {
 				Hooks::register(
 					'UserLogout',
@@ -607,7 +621,7 @@ class UserNameSessionProvider extends CookieSessionProvider {
 						}
 						$personalurls[ 'logout' ] = [
 							'href' => $url,
-							'text' => wfMessage( 'pt-userlogout' )->text(),
+							'text' => $label ?? wfMessage( 'pt-userlogout' )->text(),
 							'active' => false
 						];
 						return true;
