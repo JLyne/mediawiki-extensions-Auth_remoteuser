@@ -182,6 +182,7 @@ class UserNameSessionProvider extends CookieSessionProvider {
 	 * * `userPrefs` - @see self::$userPrefs
 	 * * `userPrefsForced` - @see self::$userPrefsForced
 	 * * `userUrls` - @see self::$userUrls
+	 * * `userLabels` - @see self::$userLabels
 	 * * `switchUser` - @see self::$switchUser
 	 * * `removeAuthPagesAndLinks` - @see self::$removeAuthPagesAndLinks
 	 *
@@ -610,7 +611,7 @@ class UserNameSessionProvider extends CookieSessionProvider {
 			} else {
 				Hooks::register(
 					'PersonalUrls',
-					function ( &$personalurls ) use ( $url, $metadata ) {
+					function ( &$personalurls ) use ( $url, $metadata, $label ) {
 						if ( $url instanceof Closure ) {
 							$url = call_user_func( $url, $metadata );
 						}
