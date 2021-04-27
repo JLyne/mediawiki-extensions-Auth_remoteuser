@@ -69,6 +69,7 @@ class AuthRemoteuserSessionProvider extends UserNameSessionProvider {
 	 * * `$wgAuthRemoteuserUserPrefs`
 	 * * `$wgAuthRemoteuserUserPrefsForced`
 	 * * `$wgAuthRemoteuserUserUrls`
+	 * * `$wgAuthRemoteuserUserLabels`
 	 * * `$wgAuthRemoteuserAllowUserSwitch`
 	 * * `$wgAuthRemoteuserRemoveAuthPagesAndLinks`
 	 * * `$wgAuthRemoteuserPriority`
@@ -97,6 +98,7 @@ class AuthRemoteuserSessionProvider extends UserNameSessionProvider {
 			'UserPrefs' => 'userPrefs',
 			'UserPrefsForced' => 'userPrefsForced',
 			'UserUrls' => 'userUrls',
+			'UserLabels' => 'userLabels',
 			'AllowUserSwitch' => 'switchUser',
 			'RemoveAuthPagesAndLinks' => 'removeAuthPagesAndLinks',
 			'Priority' => 'priority',

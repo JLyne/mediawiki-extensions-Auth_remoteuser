@@ -114,6 +114,16 @@ class UserNameSessionProvider extends CookieSessionProvider {
 	protected ?array $userUrls;
 
 	/**
+	 * Labels in links which differ from the default ones. The following keys are
+	 * supported in this associative array:
+	 * * 'logout' - Use this label for logout link.
+	 *
+	 * @var array
+	 * @since 2.0.0
+	 */
+	protected array $userLabels;
+
+	/**
 	 * Indicates if the automatically logged-in user can switch to another local
 	 * MediaWiki account while still beeing identified by the remote user name.
 	 *
@@ -180,6 +190,7 @@ class UserNameSessionProvider extends CookieSessionProvider {
 	 * * `userPrefs` - @see self::$userPrefs
 	 * * `userPrefsForced` - @see self::$userPrefsForced
 	 * * `userUrls` - @see self::$userUrls
+	 * * `userLabels` - @see self::$userLabels
 	 * * `switchUser` - @see self::$switchUser
 	 * * `removeAuthPagesAndLinks` - @see self::$removeAuthPagesAndLinks
 	 *
@@ -205,6 +216,7 @@ class UserNameSessionProvider extends CookieSessionProvider {
 			'userPrefs' => null,
 			'userPrefsForced' => null,
 			'userUrls' => null,
+			'userLabels' => null,
 			'switchUser' => false,
 			'removeAuthPagesAndLinks' => true,
 			'groups' => [],
@@ -235,6 +247,7 @@ class UserNameSessionProvider extends CookieSessionProvider {
 					case 'userPrefs':
 					case 'userPrefsForced':
 					case 'userUrls':
+					case 'userLabels':
 						if ( is_array( $params[ $key ] ) ) {
 							$value = $params[ $key ];
 						}
@@ -591,7 +604,9 @@ class UserNameSessionProvider extends CookieSessionProvider {
 		# therefore we use the `UserLogoutComplete` hook for these type of urls.
 		if ( $this->userUrls && isset( $this->userUrls[ 'logout' ] ) ) {
 			$url = $this->userUrls[ 'logout' ];
+			$label = $this->userLabels[ 'logout' ] ?? null;
 			$hookContainer = $this->hookContainer;
+
 			if ( $this->canChangeUser() ) {
 				$hookContainer->register(
 					'UserLogout',
@@ -626,7 +641,7 @@ class UserNameSessionProvider extends CookieSessionProvider {
 			} else {
 				$hookContainer->register(
 					'SkinTemplateNavigation::Universal',
-					static function ( $sktemplate, &$links ) use ( $url, $metadata ) {
+					static function ( $sktemplate, &$links ) use ( $url, $metadata, $label ) {
 						if ( $url instanceof Closure ) {
 							$url = call_user_func( $url, $metadata );
 						}
@@ -638,7 +653,7 @@ class UserNameSessionProvider extends CookieSessionProvider {
 						}
 						$personalurls[ 'logout' ] = [
 							'href' => $url,
-							'text' => $sktemplate->msg( 'pt-userlogout' )->text(),
+							'text' => $label ?? $sktemplate->msg( 'pt-userlogout' )->text(),
 							'active' => false
 						];
 						return true;
