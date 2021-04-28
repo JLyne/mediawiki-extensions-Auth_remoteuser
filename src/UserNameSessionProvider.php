@@ -653,6 +653,10 @@ class UserNameSessionProvider extends CookieSessionProvider {
 			);
 		}
 
+		if ( $info->getUserInfo()->getId() ) {
+			$this->setUserGroups($info->getUserInfo()->getUser());
+		}
+
 		# Set user preferences on each request.
 		#
 		# Forcing user preferences is useful if they are provided by an external
@@ -707,8 +711,6 @@ class UserNameSessionProvider extends CookieSessionProvider {
 					}
 				}
 			);
-
-			$this->setUserGroups($info->getUserInfo()->getUser());
 		}
 
 		# Don't remove anything.
