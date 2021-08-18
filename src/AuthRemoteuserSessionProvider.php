@@ -205,7 +205,7 @@ class AuthRemoteuserSessionProvider extends UserNameSessionProvider {
 			&& $conf->get( 'MailDomain' ) !== '' ) {
 			$domain = $conf->get( 'MailDomain' );
 			$params[ 'userPrefs' ] += [
-				'email' => function ( $metadata ) use( $domain )  {
+				'email' => static function ( $metadata ) use( $domain )  {
 					return $metadata[ 'remoteUserName' ] . '@' . $domain;
 				}
 			];
@@ -237,7 +237,7 @@ class AuthRemoteuserSessionProvider extends UserNameSessionProvider {
 
 		Hooks::register(
 			static::HOOKNAME,
-			function ( &$username ) use ( $replacepatterns ) {
+			static function ( &$username ) use ( $replacepatterns ) {
 				foreach ( $replacepatterns as $pattern => $replacement ) {
 					\Wikimedia\suppressWarnings();
 					# If $pattern is no regex, create one from it.
@@ -280,7 +280,7 @@ class AuthRemoteuserSessionProvider extends UserNameSessionProvider {
 
 		Hooks::register(
 			static::HOOKNAME,
-			function ( &$username ) use ( $names, $allow ) {
+			static function ( &$username ) use ( $names, $allow ) {
 				if ( isset( $names[ $username ] ) ) {
 					return $allow;
 				}

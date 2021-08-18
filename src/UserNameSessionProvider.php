@@ -28,6 +28,7 @@ namespace MediaWiki\Extension\Auth_remoteuser;
 
 use Closure;
 use Hooks;
+use MediaWiki\MediaWikiServices;
 use MediaWiki\Session\CookieSessionProvider;
 use MediaWiki\Session\SessionBackend;
 use MediaWiki\Session\SessionInfo;
@@ -390,11 +391,7 @@ class UserNameSessionProvider extends CookieSessionProvider {
 			# @see AuthManager::autoCreateUser()
 			if ( $sessionInfo && $userInfo->getUser()->isAnon() ) {
 				$anon = $userInfo->getUser();
-				$permissions = $anon->getGroupPermissions( $anon->getEffectiveGroups() );
-				if (
-					in_array( 'autocreateaccount', $permissions, true )
-					|| in_array( 'createaccount', $permissions, true )
-				) {
+				if ( $anon->isAllowedAny( 'autocreateaccount', 'createaccount' ) ) {
 					$this->logger->warning(
 						"Renew session due to global permission change " .
 						"in (auto) creating new users."
@@ -541,8 +538,7 @@ class UserNameSessionProvider extends CookieSessionProvider {
 			# accounts for all users) and user switching is forbidden. A wiki admin with
 			# this permission can then access this page to create accounts explicitly.
 			$user = $info->getUserInfo()->getUser();
-			$permissions = $user->getGroupPermissions( $user->getEffectiveGroups() );
-			if ( !in_array( 'createaccount', $permissions, true ) ) {
+			if ( !$user->isAllowed( 'createaccount' ) ) {
 				$disableSpecialPages += [ 'CreateAccount' => true ];
 			}
 		}
@@ -580,7 +576,7 @@ class UserNameSessionProvider extends CookieSessionProvider {
 			if ( $this->canChangeUser() ) {
 				Hooks::register(
 					'UserLogout',
-					function () use ( $url, $metadata, $switchedUser ) {
+					static function () use ( $url, $metadata, $switchedUser ) {
 						if ( $url instanceof Closure ) {
 							$url = call_user_func( $url, $metadata );
 						}
@@ -599,7 +595,7 @@ class UserNameSessionProvider extends CookieSessionProvider {
 						}
 						Hooks::register(
 							'UserLogoutComplete',
-							function () use ( $url ) {
+							static function () use ( $url ) {
 								global $wgOut;
 								$wgOut->redirect( $url );
 								return true;
@@ -611,7 +607,7 @@ class UserNameSessionProvider extends CookieSessionProvider {
 			} else {
 				Hooks::register(
 					'PersonalUrls',
-					function ( &$personalurls ) use ( $url, $metadata, $label ) {
+					static function ( &$personalurls ) use ( $url, $metadata, $label ) {
 						if ( $url instanceof Closure ) {
 							$url = call_user_func( $url, $metadata );
 						}
@@ -687,7 +683,7 @@ class UserNameSessionProvider extends CookieSessionProvider {
 			$keys = array_keys( $preferences );
 			Hooks::register(
 				'GetPreferences',
-				function ( $user, &$prefs ) use ( $keys ) {
+				static function ( $user, &$prefs ) use ( $keys ) {
 					foreach ( $keys as $key ) {
 
 						if ( $key === 'email' ) {
@@ -721,7 +717,7 @@ class UserNameSessionProvider extends CookieSessionProvider {
 
 		Hooks::register(
 			'SpecialPage_initList',
-			function ( &$specials ) use ( $disableSpecialPages ) {
+			static function ( &$specials ) use ( $disableSpecialPages ) {
 				foreach ( $disableSpecialPages as $page => $true ) {
 					if ( $true ) {
 						unset( $specials[ $page ] );
@@ -733,7 +729,7 @@ class UserNameSessionProvider extends CookieSessionProvider {
 
 		Hooks::register(
 			'PersonalUrls',
-			function ( &$personalurls ) use ( $disablePersonalUrls ) {
+			static function ( &$personalurls ) use ( $disablePersonalUrls ) {
 				foreach ( $disablePersonalUrls as $url => $true ) {
 					if ( $true ) {
 						unset( $personalurls[ $url ] );
@@ -837,7 +833,7 @@ class UserNameSessionProvider extends CookieSessionProvider {
 	 * @param bool $saveToDB Save changes to database with this function call.
 	 * @see User::setRealName()
 	 * @see User::setEmail()
-	 * @see User::setOption()
+	 * @see UserOptionsManager::setOption()
 	 * @since 2.0.0
 	 */
 	public function setUserPrefs( $user, $preferences, $metadata, $saveToDB = false ) {
@@ -871,7 +867,14 @@ class UserNameSessionProvider extends CookieSessionProvider {
 					default:
 						if ( $value != $user->getOption( $option ) ) {
 							$dirty = true;
-							$user->setOption( $option, $value );
+							$services = MediaWikiServices::getInstance();
+							if ( method_exists( $services, 'getUserOptionsManager' ) ) {
+								// MW 1.35 +
+								$services->getUserOptionsManager()
+									->setOption( $user, $option, $value );
+							} else {
+								$user->setOption( $option, $value );
+							}
 						}
 				}
 			}
