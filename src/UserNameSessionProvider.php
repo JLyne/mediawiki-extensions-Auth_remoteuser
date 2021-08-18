@@ -278,6 +278,15 @@ class UserNameSessionProvider extends CookieSessionProvider {
 		$params[ 'cookieOptions' ] += [ 'prefix' => $wgCookiePrefix ];
 		$params[ 'cookieOptions' ][ 'prefix' ] .= $providerprefix;
 
+		Hooks::register(
+			'UserEffectiveGroups',
+			function ( $user, &$groups ) {
+				$groups = $this->determineUserGroups( $groups );
+
+				return true;
+			}
+		);
+
 		# Let our parent sanitize the rest of the configuration.
 		parent::__construct( $params );
 	}
@@ -649,10 +658,6 @@ class UserNameSessionProvider extends CookieSessionProvider {
 			);
 		}
 
-		if ( $info->getUserInfo()->getId() ) {
-			$this->setUserGroups($info->getUserInfo()->getUser());
-		}
-
 		# Set user preferences on each request.
 		#
 		# Forcing user preferences is useful if they are provided by an external
@@ -898,17 +903,15 @@ class UserNameSessionProvider extends CookieSessionProvider {
 		}
 	}
 
-	private function setUserGroups($user) {
-		$dirty = false;
+	private function determineUserGroups( $existingGroups ) {
+		$groups = ['*'];
 
-		$groups = [];
-
-		foreach($this->groups as $group) {
-			if($group instanceof Closure) {
+		foreach( $this->groups as $group ) {
+			if( $group instanceof Closure ) {
 				$result = array_merge(call_user_func($group));
 
-				if(is_array($result)) {
-					$groups += $result;
+				if( is_array($result) ) {
+					$groups = array_merge($groups, $result);
 				} else {
 					$groups[] = $result;
 				}
@@ -918,29 +921,10 @@ class UserNameSessionProvider extends CookieSessionProvider {
 		}
 
 		// Remove existing groups that user is no longer in (if so configured.)
-		if ($this->overwriteLocalGroups) {
-			$curGroups = $user->getGroups();
-			foreach($curGroups as $group) {
-				if(FALSE === in_array($group, $groups)) {
-					// No longer in this group, so remove it.
-					$dirty = true;
-					$user->removeGroup($group);
-				}
-			}
+		if( $this->overwriteLocalGroups ) {
+			return $groups;
 		}
 
-		// Add in any new groups that aren't already present.
-		$curGroups = $user->getGroups();
-		foreach($groups as $group) {
-			if(FALSE === in_array($group, $curGroups)) {
-				$dirty = true;
-				$user->addGroup($group);
-			}
-		}
-
-		# Only update database if something has changed.
-		if ($dirty) {
-			$user->saveSettings();
-		}
+		return array_unique( array_merge( $groups, $existingGroups ) );
 	}
 }
