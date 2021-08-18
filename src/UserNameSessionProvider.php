@@ -852,9 +852,21 @@ class UserNameSessionProvider extends CookieSessionProvider {
 
 				switch ( $option ) {
 					case 'realname':
-						if ( is_string( $value ) && $value !== $user->getRealName() ) {
-							$dirty = true;
-							$user->setRealName( $value );
+						if ( is_string( $value ) ) {
+							$update = false;
+
+							try {
+								if( $value !== $user->getRealName() ) {
+									$update = true;
+								}
+							} catch( \TypeError $e ) {
+								$update = true;
+							} finally {
+								if( $update ) {
+									$dirty = true;
+									$user->setRealName( $value );
+								}
+							}
 						}
 						break;
 					case 'email':
