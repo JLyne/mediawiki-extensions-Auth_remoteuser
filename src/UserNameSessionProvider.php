@@ -847,6 +847,8 @@ class UserNameSessionProvider extends CookieSessionProvider {
 			# Mark changes to prevent superfluous database writings.
 			$dirty = false;
 
+			$userToUpdate = $user->getInstanceForUpdate();
+
 			foreach ( $preferences as $option => $value ) {
 
 				# If the given value is a closure, call it to get the value. All of our
@@ -861,7 +863,7 @@ class UserNameSessionProvider extends CookieSessionProvider {
 							$update = false;
 
 							try {
-								if( $value !== $user->getRealName() ) {
+								if( $value !== $userToUpdate->getRealName() ) {
 									$update = true;
 								}
 							} catch( \TypeError $e ) {
@@ -869,28 +871,28 @@ class UserNameSessionProvider extends CookieSessionProvider {
 							} finally {
 								if( $update ) {
 									$dirty = true;
-									$user->setRealName( $value );
+									$userToUpdate->setRealName( $value );
 								}
 							}
 						}
 						break;
 					case 'email':
-						if ( Sanitizer::validateEmail( $value ) && $value !== $user->getEmail() ) {
+						if ( Sanitizer::validateEmail( $value ) && $value !== $userToUpdate->getEmail() ) {
 							$dirty = true;
-							$user->setEmail( $value );
-							$user->confirmEmail();
+							$userToUpdate->setEmail( $value );
+							$userToUpdate->confirmEmail();
 						}
 						break;
 					default:
-						if ( $value != $user->getOption( $option ) ) {
+						if ( $value != $userToUpdate->getOption( $option ) ) {
 							$dirty = true;
 							$services = MediaWikiServices::getInstance();
 							if ( method_exists( $services, 'getUserOptionsManager' ) ) {
 								// MW 1.35 +
 								$services->getUserOptionsManager()
-									->setOption( $user, $option, $value );
+									->setOption( $userToUpdate, $option, $value );
 							} else {
-								$user->setOption( $option, $value );
+								$userToUpdate->setOption( $option, $value );
 							}
 						}
 				}
