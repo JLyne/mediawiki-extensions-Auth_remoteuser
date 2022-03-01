@@ -900,7 +900,7 @@ class UserNameSessionProvider extends CookieSessionProvider {
 
 			# Only update database if something has changed.
 			if ( $saveToDB && $dirty ) {
-				$user->saveSettings();
+				$userToUpdate->saveSettings();
 			}
 		}
 	}
