@@ -877,7 +877,9 @@ class UserNameSessionProvider extends CookieSessionProvider {
 		# Mark changes to prevent superfluous database writings.
 		$dirty = false;
 
-		foreach ( $preferences as $option => $value ) {
+			$userToUpdate = $user->getInstanceForUpdate() ?? $user;
+
+			foreach ( $preferences as $option => $value ) {
 
 			# If the given value is a closure, call it to get the value. All of our
 			# provider metadata is exposed to this function as first parameter.
@@ -891,7 +893,7 @@ class UserNameSessionProvider extends CookieSessionProvider {
 						$update = false;
 
 						try {
-							if( $value !== $user->getRealName() ) {
+							if( $value !== $userToUpdate->getRealName() ) {
 								$update = true;
 							}
 						} catch( \TypeError $e ) {
@@ -899,29 +901,29 @@ class UserNameSessionProvider extends CookieSessionProvider {
 						} finally {
 							if( $update ) {
 								$dirty = true;
-								$user->setRealName( $value );
+								$userToUpdate->setRealName( $value );
 							}
 						}
 					}
 					break;
 				case 'email':
-					if ( Sanitizer::validateEmail( $value ) && $value !== $user->getEmail() ) {
+					if ( Sanitizer::validateEmail( $value ) && $value !== $userToUpdate->getEmail() ) {
 						$dirty = true;
-						$user->setEmail( $value );
-						$user->confirmEmail();
+						$userToUpdate->setEmail( $value );
+						$userToUpdate->confirmEmail();
 					}
 					break;
 				default:
-					if ( $value != $this->userOptionsManager->getOption( $user, $option ) ) {
+					if ( $value != $this->userOptionsManager->getOption( $userToUpdate, $option ) ) {
 						$dirty = true;
-						$this->userOptionsManager->setOption( $user, $option, $value );
+						$this->userOptionsManager->setOption( $userToUpdate, $option, $value );
 					}
 			}
 		}
 
 		# Only update database if something has changed.
 		if ( $saveToDB && $dirty ) {
-			$user->saveSettings();
+			$userToUpdate->saveSettings();
 		}
 	}
 
