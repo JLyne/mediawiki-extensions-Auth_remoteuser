@@ -847,7 +847,7 @@ class UserNameSessionProvider extends CookieSessionProvider {
 			# Mark changes to prevent superfluous database writings.
 			$dirty = false;
 
-			$userToUpdate = $user->getInstanceForUpdate();
+			$userToUpdate = $user->getInstanceForUpdate() ?? $user;
 
 			foreach ( $preferences as $option => $value ) {
 
